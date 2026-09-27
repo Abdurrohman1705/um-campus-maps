@@ -1,0 +1,97 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #222;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+    background-color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+.header p {
+    color: #666;
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+.search-section {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    background-color: white;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+#searchButton {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: #eeeeee;
+}
+
+
+/* =========================
+   CATEGORY
+========================= */
+
+.categories {
+    display: flex;
+    gap: 10px;
+    padding: 0 15px 15px;
+    background-color: white;
+    overflow-x: auto;
+}
+
+.categories button {
+    padding: 9px 14px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    background-color: white;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.categories button:hover {
+    background-color: #eeeeee;
+}
+
+
+/* =========================
+   MAP
+========================= */
+
+#map {
+    width: 100%;
+    height: calc(100vh - 190px);
+    min-height: 500px;
+}

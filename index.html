@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>UM Campus Maps</title>
+
+    <!-- Menghubungkan HTML dengan file CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Leaflet CSS untuk tampilan peta -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+</head>
+
+<body>
+
+    <!-- ========================= -->
+    <!-- BAGIAN HEADER WEBSITE -->
+    <!-- ========================= -->
+
+    <header class="header">
+
+        <div>
+            <h1>UM Campus Maps</h1>
+
+            <p>
+                Peta Interaktif Universitas Negeri Malang
+            </p>
+        </div>
+
+    </header>
+
+
+    <!-- ========================= -->
+    <!-- BAGIAN PENCARIAN -->
+    <!-- ========================= -->
+
+    <section class="search-section">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Cari gedung, kantin, fasilitas..."
+        >
+
+        <button id="searchButton">
+            Cari
+        </button>
+
+    </section>
+
+
+    <!-- ========================= -->
+    <!-- BAGIAN KATEGORI -->
+    <!-- ========================= -->
+
+    <section class="categories">
+
+        <button onclick="filterCategory('Semua')">
+            Semua
+        </button>
+
+        <button onclick="filterCategory('Gedung')">
+            🏢 Gedung
+        </button>
+
+        <button onclick="filterCategory('Kantin')">
+            🍜 Kantin
+        </button>
+
+        <button onclick="filterCategory('Fasilitas')">
+            🚻 Fasilitas
+        </button>
+
+        <button onclick="filterCategory('Parkir')">
+            🅿️ Parkir
+        </button>
+
+        <!-- Tombol lokasi pengguna -->
+        <button id="myLocationButton">
+            📍 Lokasi Saya
+        </button>
+
+    </section>
+
+
+    <!-- ========================= -->
+    <!-- BAGIAN PETA -->
+    <!-- ========================= -->
+
+    <main>
+
+        <div id="map"></div>
+
+    </main>
+
+
+    <!-- ========================= -->
+    <!-- LEAFLET JAVASCRIPT -->
+    <!-- ========================= -->
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+
+    <!-- ========================= -->
+    <!-- JAVASCRIPT WEBSITE KITA -->
+    <!-- ========================= -->
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
