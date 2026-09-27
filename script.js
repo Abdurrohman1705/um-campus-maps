@@ -762,7 +762,7 @@ function mulaiNavigasi(
 
             // Bahasa
 
-            language: "id",
+            language: "en",
 
 
             // Tampilan garis
