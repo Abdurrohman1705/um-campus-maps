@@ -153,7 +153,7 @@ const REROUTE_DISTANCE = 30;
 
 // Akurasi GPS yang dianggap cukup baik
 
-const MAX_ACCEPTABLE_ACCURACY = 100;
+const MAX_ACCEPTABLE_ACCURACY = 10;
 
 
 // Jarak tujuan dianggap sudah sampai
