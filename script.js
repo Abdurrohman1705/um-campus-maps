@@ -540,6 +540,15 @@ function mulaiTrackingLokasi() {
         watchId = null;
     }
 
+    // ==================================================
+    // HAPUS MARKER USER LAMA (MENCEGAH DUPLIKAT)
+    // ==================================================
+
+    if (myLocationMarker) {
+        map.removeLayer(myLocationMarker);
+        myLocationMarker = null;
+    }
+
     myLocationButton.innerHTML = "⏳ Mencari lokasi...";
 
     tampilkanStatusGPS(
