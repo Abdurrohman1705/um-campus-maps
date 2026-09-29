@@ -1,8 +1,8 @@
 // ======================================================
 // UM CAMPUS MAPS
-// FINAL V4.0
+// FINAL V5.0
 // Lokasi Saya + Navigasi Real-Time
-// GPS Tracking + Re-routing
+// GPS Tracking + Re-routing + Filter Akurasi
 // ======================================================
 
 
@@ -17,10 +17,7 @@ const umLocation = [-7.9617, 112.6177];
 // 2. MEMBUAT PETA
 // ======================================================
 
-const map = L.map("map").setView(
-    umLocation,
-    16
-);
+const map = L.map("map").setView(umLocation, 16);
 
 
 // ======================================================
@@ -31,9 +28,7 @@ L.tileLayer(
     "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
     {
         maxZoom: 19,
-
-        attribution:
-            "&copy; OpenStreetMap contributors"
+        attribution: "&copy; OpenStreetMap contributors"
     }
 ).addTo(map);
 
@@ -46,69 +41,45 @@ const locations = [
 
     {
         nama: "Fakultas Ilmu Sosial UM",
-
         kategori: "Gedung",
-
         lat: -7.9641526,
-
         lng: 112.6177915,
-
         deskripsi:
             "Fakultas Ilmu Sosial Universitas Negeri Malang, Kampus I UM."
     },
 
-
     {
         nama: "Fakultas Ilmu Pendidikan UM",
-
         kategori: "Gedung",
-
         lat: -7.9625204,
-
         lng: 112.6151851,
-
         deskripsi:
             "Fakultas Ilmu Pendidikan Universitas Negeri Malang, Kampus I UM."
     },
 
-
     {
         nama: "Masjid Al-Hikmah UM",
-
         kategori: "Fasilitas",
-
         lat: -7.961398407299380,
-
         lng: 112.61702580905700,
-
         deskripsi:
             "Masjid Al-Hikmah Universitas Negeri Malang yang berada di kompleks Kampus I UM."
     },
 
-
     {
         nama: "Graha Cakrawala UM",
-
         kategori: "Fasilitas",
-
         lat: -7.959254723351540,
-
         lng: 112.61833401090200,
-
         deskripsi:
             "Graha Cakrawala merupakan gedung pertemuan serbaguna Universitas Negeri Malang."
     },
 
-
     {
         nama: "Perpustakaan UM",
-
         kategori: "Fasilitas",
-
         lat: -7.962081463376340,
-
         lng: 112.61655927837600,
-
         deskripsi:
             "Perpustakaan Universitas Negeri Malang yang mendukung kegiatan pembelajaran dan penelitian mahasiswa."
     }
@@ -128,18 +99,15 @@ let markers = [];
 // ======================================================
 
 let routingControl = null;
-
 let currentUserLocation = null;
-
 let myLocationMarker = null;
-
 let watchId = null;
-
 let navigationDestination = null;
-
 let navigationDestinationName = null;
-
 let lastRerouteLocation = null;
+
+// Menyimpan posisi GPS terbaik yang pernah diterima
+let bestUserLocation = null;
 
 
 // ======================================================
@@ -147,113 +115,81 @@ let lastRerouteLocation = null;
 // ======================================================
 
 // Jarak minimum untuk menghitung ulang rute
-
 const REROUTE_DISTANCE = 30;
 
+// Akurasi GPS yang dianggap cukup baik (meter)
+const MAX_ACCEPTABLE_ACCURACY = 30;
 
-// Akurasi GPS yang dianggap cukup baik
-
-const MAX_ACCEPTABLE_ACCURACY = 10;
-
-
-// Jarak tujuan dianggap sudah sampai
-
+// Jarak tujuan dianggap sudah sampai (meter)
 const ARRIVAL_DISTANCE = 20;
 
 
 // ======================================================
-// 8. MENAMPILKAN MARKER LOKASI
+// 8. INDIKATOR STATUS GPS DI LAYAR
+// ======================================================
+
+const gpsStatusEl = document.getElementById("gps-status");
+
+function tampilkanStatusGPS(teks, warna) {
+    if (!gpsStatusEl) return;
+
+    gpsStatusEl.style.display = "block";
+    gpsStatusEl.textContent = teks;
+
+    if (warna) {
+        gpsStatusEl.style.background = warna;
+    }
+}
+
+function sembunyikanStatusGPS() {
+    if (!gpsStatusEl) return;
+    gpsStatusEl.style.display = "none";
+}
+
+
+// ======================================================
+// 9. MENAMPILKAN MARKER LOKASI
 // ======================================================
 
 function tampilkanLokasi(data) {
 
-
-    // Hapus marker lama
-
-    markers.forEach(function(marker) {
-
+    markers.forEach(function (marker) {
         map.removeLayer(marker);
-
     });
-
 
     markers = [];
 
+    data.forEach(function (lokasi) {
 
-    // Buat marker baru
-
-    data.forEach(function(lokasi) {
-
-
-        const marker = L.marker([
-
-            lokasi.lat,
-
-            lokasi.lng
-
-        ]).addTo(map);
-
-
-        // ==================================================
-        // POPUP
-        // ==================================================
+        const marker = L.marker([lokasi.lat, lokasi.lng]).addTo(map);
 
         marker.bindPopup(`
-
             <div style="min-width:250px">
-
-                <h3 style="
-                    margin-top:0;
-                    margin-bottom:8px;
-                ">
-
+                <h3 style="margin-top:0;margin-bottom:8px;">
                     ${lokasi.nama}
-
                 </h3>
 
-
                 <p>
-
                     <strong>Kategori:</strong>
-
                     ${lokasi.kategori}
-
                 </p>
 
-
-                <p>
-
-                    ${lokasi.deskripsi}
-
-                </p>
-
+                <p>${lokasi.deskripsi}</p>
 
                 <hr>
 
-
                 <p style="font-size:12px;">
-
-                    📍 Latitude:
-                    ${lokasi.lat}
-
+                    📍 Latitude: ${lokasi.lat}
                     <br>
-
-                    📍 Longitude:
-                    ${lokasi.lng}
-
+                    📍 Longitude: ${lokasi.lng}
                 </p>
 
-
                 <button
-
-                    onclick="
-                        mulaiNavigasi(
-                            ${lokasi.lat},
-                            ${lokasi.lng},
-                            '${lokasi.nama.replace(/'/g, "\\'")}'
-                        )
-                    "
-
+                    onclick="mulaiNavigasi(
+                        ${lokasi.lat},
+                        ${lokasi.lng},
+                        '${lokasi.nama.replace(/'/g, "\\'")}'
+                    )"
                     style="
                         width:100%;
                         padding:10px;
@@ -264,268 +200,179 @@ function tampilkanLokasi(data) {
                         cursor:pointer;
                         font-size:14px;
                     "
-
                 >
-
                     🧭 Mulai Navigasi
-
                 </button>
-
-
             </div>
-
         `);
 
-
         markers.push(marker);
-
     });
-
 }
 
 
 // ======================================================
-// 9. TAMPILKAN SEMUA LOKASI
+// 10. TAMPILKAN SEMUA LOKASI
 // ======================================================
 
 tampilkanLokasi(locations);
 
 
 // ======================================================
-// 10. FILTER KATEGORI
+// 11. FILTER KATEGORI
 // ======================================================
 
 function filterCategory(kategori) {
 
-
     if (kategori === "Semua") {
-
         tampilkanLokasi(locations);
-
         return;
-
     }
 
-
-    const hasil = locations.filter(
-
-        function(lokasi) {
-
-            return lokasi.kategori === kategori;
-
-        }
-
-    );
-
+    const hasil = locations.filter(function (lokasi) {
+        return lokasi.kategori === kategori;
+    });
 
     tampilkanLokasi(hasil);
 
-
     if (hasil.length === 0) {
-
-        alert(
-            "Belum ada lokasi untuk kategori " +
-            kategori
-        );
-
+        alert("Belum ada lokasi untuk kategori " + kategori);
     }
-
 }
 
 
 // ======================================================
-// 11. SEARCH
+// 12. SEARCH
 // ======================================================
 
-const searchButton =
-    document.getElementById("searchButton");
+const searchButton = document.getElementById("searchButton");
+const searchInput = document.getElementById("searchInput");
 
+searchButton.addEventListener("click", function () {
 
-const searchInput =
-    document.getElementById("searchInput");
+    const keyword = searchInput.value.toLowerCase().trim();
 
-
-searchButton.addEventListener(
-
-    "click",
-
-    function() {
-
-
-        const keyword =
-
-            searchInput.value
-                .toLowerCase()
-                .trim();
-
-
-        if (keyword === "") {
-
-            tampilkanLokasi(locations);
-
-            return;
-
-        }
-
-
-        const hasil =
-
-            locations.filter(
-
-                function(lokasi) {
-
-                    return (
-
-                        lokasi.nama
-                            .toLowerCase()
-                            .includes(keyword)
-
-                        ||
-
-                        lokasi.kategori
-                            .toLowerCase()
-                            .includes(keyword)
-
-                        ||
-
-                        lokasi.deskripsi
-                            .toLowerCase()
-                            .includes(keyword)
-
-                    );
-
-                }
-
-            );
-
-
-        tampilkanLokasi(hasil);
-
-
-        if (hasil.length === 0) {
-
-            alert(
-                'Lokasi "' +
-                searchInput.value +
-                '" tidak ditemukan.'
-            );
-
-        }
-
+    if (keyword === "") {
+        tampilkanLokasi(locations);
+        return;
     }
 
-);
+    const hasil = locations.filter(function (lokasi) {
+        return (
+            lokasi.nama.toLowerCase().includes(keyword) ||
+            lokasi.kategori.toLowerCase().includes(keyword) ||
+            lokasi.deskripsi.toLowerCase().includes(keyword)
+        );
+    });
 
+    tampilkanLokasi(hasil);
 
-// ======================================================
-// 12. ENTER UNTUK SEARCH
-// ======================================================
-
-searchInput.addEventListener(
-
-    "keypress",
-
-    function(event) {
-
-        if (event.key === "Enter") {
-
-            searchButton.click();
-
-        }
-
+    if (hasil.length === 0) {
+        alert('Lokasi "' + searchInput.value + '" tidak ditemukan.');
     }
-
-);
-
-
-// ======================================================
-// 13. TOMBOL LOKASI SAYA
-// ======================================================
-
-const myLocationButton =
-
-    document.getElementById(
-        "myLocationButton"
-    );
+});
 
 
 // ======================================================
-// 14. UPDATE LOKASI PENGGUNA
+// 13. ENTER UNTUK SEARCH
+// ======================================================
+
+searchInput.addEventListener("keypress", function (event) {
+    if (event.key === "Enter") {
+        searchButton.click();
+    }
+});
+
+
+// ======================================================
+// 14. TOMBOL LOKASI SAYA
+// ======================================================
+
+const myLocationButton = document.getElementById("myLocationButton");
+
+
+// ======================================================
+// 15. UPDATE LOKASI PENGGUNA (DENGAN FILTER AKURASI)
 // ======================================================
 
 function updateUserLocation(position) {
 
-
-    const latitude =
-        position.coords.latitude;
-
-
-    const longitude =
-        position.coords.longitude;
-
-
-    const accuracy =
-        position.coords.accuracy;
-
-
-    const timestamp =
-        new Date(
-            position.timestamp
-        );
-
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+    const timestamp = new Date(position.timestamp);
 
     // ==================================================
     // DEBUG GPS
     // ==================================================
 
-    console.log(
-        "================================="
-    );
+    console.log("=================================");
+    console.log("GPS UPDATE");
+    console.log("Latitude:", latitude);
+    console.log("Longitude:", longitude);
+    console.log("Akurasi:", accuracy, "meter");
+    console.log("Waktu:", timestamp.toLocaleTimeString());
+    console.log("=================================");
+
+    // ==================================================
+    // FILTER AKURASI — TOLAK DATA BURUK
+    // ==================================================
+
+    if (accuracy > MAX_ACCEPTABLE_ACCURACY) {
+
+        console.warn(
+            "❌ GPS DITOLAK — akurasi terlalu buruk:",
+            Math.round(accuracy),
+            "meter (batas:",
+            MAX_ACCEPTABLE_ACCURACY,
+            "meter)"
+        );
+
+        tampilkanStatusGPS(
+            "⚠️ GPS lemah (±" + Math.round(accuracy) + " m). Mencari sinyal...",
+            "rgba(200, 80, 0, 0.85)"
+        );
+
+        // Keluar — jangan update marker, posisi, atau rute
+        return;
+    }
 
     console.log(
-        "GPS UPDATE"
-    );
-
-    console.log(
-        "Latitude:",
-        latitude
-    );
-
-    console.log(
-        "Longitude:",
-        longitude
-    );
-
-    console.log(
-        "Akurasi:",
-        accuracy,
+        "✅ GPS DITERIMA — akurasi:",
+        Math.round(accuracy),
         "meter"
     );
 
-    console.log(
-        "Waktu:",
-        timestamp.toLocaleTimeString()
-    );
+    // ==================================================
+    // SIMPAN POSISI TERBAIK
+    // ==================================================
 
-    console.log(
-        "================================="
-    );
+    if (
+        !bestUserLocation ||
+        accuracy < bestUserLocation.accuracy
+    ) {
+        bestUserLocation = {
+            lat: latitude,
+            lng: longitude,
+            accuracy: accuracy
+        };
 
+        console.log(
+            "⭐ Posisi terbaik diperbarui:",
+            Math.round(accuracy),
+            "meter"
+        );
+    }
 
     // ==================================================
-    // SIMPAN LOKASI
+    // SIMPAN LOKASI SAAT INI
     // ==================================================
 
     currentUserLocation = {
-
         lat: latitude,
-
         lng: longitude,
-
         accuracy: accuracy
-
     };
-
 
     // ==================================================
     // BUAT MARKER PENGGUNA
@@ -533,185 +380,79 @@ function updateUserLocation(position) {
 
     if (!myLocationMarker) {
 
-
-        myLocationMarker =
-
-            L.marker([
-
-                latitude,
-
-                longitude
-
-            ]).addTo(map);
-
+        myLocationMarker = L.marker([latitude, longitude]).addTo(map);
 
         myLocationMarker.bindPopup(`
-
             <div>
-
-                <h3>
-                    📍 Lokasi Saya
-                </h3>
+                <h3>📍 Lokasi Saya</h3>
 
                 <p>
-
-                    <strong>
-                        Latitude:
-                    </strong>
-
-                    <br>
-
-                    <span id="userLatitude">
-                        ${latitude.toFixed(6)}
-                    </span>
-
+                    <strong>Latitude:</strong><br>
+                    <span id="userLatitude">${latitude.toFixed(6)}</span>
                 </p>
-
 
                 <p>
-
-                    <strong>
-                        Longitude:
-                    </strong>
-
-                    <br>
-
-                    <span id="userLongitude">
-                        ${longitude.toFixed(6)}
-                    </span>
-
+                    <strong>Longitude:</strong><br>
+                    <span id="userLongitude">${longitude.toFixed(6)}</span>
                 </p>
-
 
                 <p>
-
-                    <strong>
-                        Akurasi:
-                    </strong>
-
-                    <br>
-
-                    <span id="userAccuracy">
-                        ±${Math.round(accuracy)} meter
-                    </span>
-
+                    <strong>Akurasi:</strong><br>
+                    <span id="userAccuracy">±${Math.round(accuracy)} meter</span>
                 </p>
-
             </div>
-
         `);
-
     }
-
 
     // ==================================================
     // PINDAHKAN MARKER
     // ==================================================
 
-    myLocationMarker.setLatLng([
-
-        latitude,
-
-        longitude
-
-    ]);
-
+    myLocationMarker.setLatLng([latitude, longitude]);
 
     // ==================================================
     // UPDATE DATA POPUP
     // ==================================================
 
-    const latElement =
-        document.getElementById(
-            "userLatitude"
-        );
+    const latElement = document.getElementById("userLatitude");
+    const lngElement = document.getElementById("userLongitude");
+    const accuracyElement = document.getElementById("userAccuracy");
 
-
-    const lngElement =
-        document.getElementById(
-            "userLongitude"
-        );
-
-
-    const accuracyElement =
-        document.getElementById(
-            "userAccuracy"
-        );
-
-
-    if (latElement) {
-
-        latElement.innerText =
-            latitude.toFixed(6);
-
-    }
-
-
-    if (lngElement) {
-
-        lngElement.innerText =
-            longitude.toFixed(6);
-
-    }
-
+    if (latElement) latElement.innerText = latitude.toFixed(6);
+    if (lngElement) lngElement.innerText = longitude.toFixed(6);
 
     if (accuracyElement) {
-
-        accuracyElement.innerText =
-            "±" +
-            Math.round(accuracy) +
-            " meter";
-
+        accuracyElement.innerText = "±" + Math.round(accuracy) + " meter";
     }
 
-
     // ==================================================
-    // JIKA AKURASI BURUK
+    // STATUS GPS DI LAYAR
     // ==================================================
 
-    if (
-        accuracy >
-        MAX_ACCEPTABLE_ACCURACY
-    ) {
+    let warnaStatus = "rgba(0, 150, 0, 0.85)";
 
-        console.warn(
-            "Akurasi GPS kurang baik:",
-            accuracy,
-            "meter"
-        );
-
+    if (accuracy > MAX_ACCEPTABLE_ACCURACY * 0.66) {
+        warnaStatus = "rgba(200, 150, 0, 0.85)";
     }
 
+    tampilkanStatusGPS(
+        "📍 Akurasi GPS: ±" + Math.round(accuracy) + " m",
+        warnaStatus
+    );
+
+    // Sembunyikan otomatis setelah 5 detik
+    setTimeout(sembunyikanStatusGPS, 5000);
 
     // ==================================================
     // JIKA SEDANG NAVIGASI
     // ==================================================
 
-    if (
+    if (navigationDestination && lastRerouteLocation) {
 
-        navigationDestination &&
-
-        lastRerouteLocation
-
-    ) {
-
-
-        const distanceMoved =
-
-            map.distance(
-
-                [
-                    lastRerouteLocation.lat,
-                    lastRerouteLocation.lng
-                ],
-
-                [
-                    latitude,
-                    longitude
-                ]
-
-            );
-
+        const distanceMoved = map.distance(
+            [lastRerouteLocation.lat, lastRerouteLocation.lng],
+            [latitude, longitude]
+        );
 
         console.log(
             "Pergerakan sejak routing terakhir:",
@@ -719,164 +460,92 @@ function updateUserLocation(position) {
             "meter"
         );
 
+        if (distanceMoved >= REROUTE_DISTANCE) {
 
-        // ==================================================
-        // HITUNG ULANG RUTE
-        // ==================================================
-
-        if (
-
-            distanceMoved >=
-            REROUTE_DISTANCE
-
-        ) {
-
-
-            console.log(
-                "♻️ Menghitung ulang rute..."
-            );
-
+            console.log("♻️ Menghitung ulang rute...");
 
             lastRerouteLocation = {
-
                 lat: latitude,
-
                 lng: longitude
-
             };
 
-
             hitungUlangRute();
-
         }
-
     }
-
 
     // ==================================================
     // IKUTI LOKASI PENGGUNA SAAT NAVIGASI
     // ==================================================
 
     if (navigationDestination) {
-
-
-        map.setView(
-
-            [
-                latitude,
-                longitude
-            ],
-
-            18,
-
-            {
-                animate: true
-            }
-
-        );
-
+        map.setView([latitude, longitude], 18, { animate: true });
     }
-
 }
 
 
 // ======================================================
-// 15. ERROR GPS
+// 16. ERROR GPS
 // ======================================================
 
 function handleLocationError(error) {
 
+    console.error("GPS ERROR:", error);
 
-    console.error(
-        "GPS ERROR:",
-        error
-    );
-
-
-    myLocationButton.innerHTML =
-        "📍 Lokasi Saya";
-
+    myLocationButton.innerHTML = "📍 Lokasi Saya";
 
     switch (error.code) {
 
-
         case error.PERMISSION_DENIED:
-
             alert(
                 "Akses lokasi ditolak.\n\n" +
                 "Silakan izinkan lokasi pada browser."
             );
-
             break;
 
-
         case error.POSITION_UNAVAILABLE:
-
             alert(
                 "Lokasi tidak tersedia.\n\n" +
                 "Periksa GPS, Wi-Fi, atau lokasi perangkat."
             );
-
             break;
 
-
         case error.TIMEOUT:
-
             alert(
                 "Waktu pencarian lokasi habis.\n\n" +
                 "Coba tekan tombol Lokasi Saya lagi."
             );
-
             break;
 
-
         default:
-
-            alert(
-                "Terjadi kesalahan saat mengambil lokasi."
-            );
-
+            alert("Terjadi kesalahan saat mengambil lokasi.");
     }
 
+    sembunyikanStatusGPS();
 }
 
 
 // ======================================================
-// 16. MULAI TRACKING GPS
+// 17. MULAI TRACKING GPS
 // ======================================================
 
 function mulaiTrackingLokasi() {
 
-
     if (!navigator.geolocation) {
-
-        alert(
-            "Browser tidak mendukung fitur lokasi."
-        );
-
+        alert("Browser tidak mendukung fitur lokasi.");
         return;
-
     }
-
-
-    // ==================================================
-    // HAPUS TRACKING LAMA
-    // ==================================================
 
     if (watchId !== null) {
-
-        navigator.geolocation.clearWatch(
-            watchId
-        );
-
+        navigator.geolocation.clearWatch(watchId);
         watchId = null;
-
     }
 
+    myLocationButton.innerHTML = "⏳ Mencari lokasi...";
 
-    myLocationButton.innerHTML =
-        "⏳ Mencari lokasi...";
-
+    tampilkanStatusGPS(
+        "🔍 Mencari sinyal GPS...",
+        "rgba(0, 0, 0, 0.75)"
+    );
 
     // ==================================================
     // AMBIL POSISI AWAL
@@ -884,517 +553,230 @@ function mulaiTrackingLokasi() {
 
     navigator.geolocation.getCurrentPosition(
 
-        function(position) {
+        function (position) {
 
+            console.log("POSISI AWAL GPS:", position);
 
-            console.log(
-                "POSISI AWAL GPS:"
-            );
+            updateUserLocation(position);
 
-            console.log(
-                position
-            );
+            if (currentUserLocation) {
+                map.setView(
+                    [currentUserLocation.lat, currentUserLocation.lng],
+                    18
+                );
+            }
 
-
-            updateUserLocation(
-                position
-            );
-
-
-            map.setView(
-
-                [
-                    position.coords.latitude,
-                    position.coords.longitude
-                ],
-
-                18
-
-            );
-
-
-            myLocationButton.innerHTML =
-                "📍 Lokasi Saya";
-
-
+            myLocationButton.innerHTML = "📍 Lokasi Saya";
         },
 
-
-        function(error) {
-
-            handleLocationError(
-                error
-            );
-
+        function (error) {
+            handleLocationError(error);
         },
-
 
         {
-
             enableHighAccuracy: true,
-
             timeout: 20000,
-
             maximumAge: 0
-
         }
-
     );
-
 
     // ==================================================
     // TRACKING BERKELANJUTAN
     // ==================================================
 
-    watchId =
+    watchId = navigator.geolocation.watchPosition(
 
-        navigator.geolocation.watchPosition(
+        function (position) {
 
-            function(position) {
+            updateUserLocation(position);
 
+            myLocationButton.innerHTML = "📍 Lokasi Saya";
+        },
 
-                updateUserLocation(
-                    position
-                );
+        function (error) {
+            handleLocationError(error);
+        },
 
-
-                myLocationButton.innerHTML =
-                    "📍 Lokasi Saya";
-
-            },
-
-
-            function(error) {
-
-                handleLocationError(
-                    error
-                );
-
-            },
-
-
-            {
-
-                enableHighAccuracy: true,
-
-                timeout: 20000,
-
-                maximumAge: 0
-
-            }
-
-        );
-
+        {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        }
+    );
 }
 
 
 // ======================================================
-// 17. TOMBOL LOKASI SAYA
+// 18. TOMBOL LOKASI SAYA
 // ======================================================
 
-myLocationButton.addEventListener(
-
-    "click",
-
-    function() {
-
-        mulaiTrackingLokasi();
-
-    }
-
-);
+myLocationButton.addEventListener("click", function () {
+    mulaiTrackingLokasi();
+});
 
 
 // ======================================================
-// 18. HITUNG ULANG RUTE
+// 19. HITUNG ULANG RUTE
 // ======================================================
 
 function hitungUlangRute() {
 
-
-    if (
-
-        !currentUserLocation ||
-
-        !navigationDestination
-
-    ) {
-
+    if (!currentUserLocation || !navigationDestination) {
         return;
-
     }
-
-
-    // ==================================================
-    // HAPUS RUTE LAMA
-    // ==================================================
 
     if (routingControl) {
-
-
-        map.removeControl(
-            routingControl
-        );
-
-
+        map.removeControl(routingControl);
         routingControl = null;
-
     }
 
-
-    console.log(
-        "🧭 ROUTING:"
-    );
-
-
+    console.log("🧭 ROUTING:");
     console.log(
         "Dari:",
         currentUserLocation.lat,
         currentUserLocation.lng
     );
-
-
     console.log(
         "Ke:",
         navigationDestination.lat,
         navigationDestination.lng
     );
 
-
-    // ==================================================
-    // BUAT RUTE BARU
-    // ==================================================
-
-    routingControl =
-
-        L.Routing.control({
-
-            waypoints: [
-
-                L.latLng(
-
-                    currentUserLocation.lat,
-
-                    currentUserLocation.lng
-
-                ),
-
-
-                L.latLng(
-
-                    navigationDestination.lat,
-
-                    navigationDestination.lng
-
-                )
-
-            ],
-
-
-            router:
-
-                L.Routing.osrmv1({
-
-                    serviceUrl:
-
-                        "https://router.project-osrm.org/route/v1"
-
-                }),
-
-
-            addWaypoints: false,
-
-
-            createMarker: function() {
-
-                return null;
-
-            },
-
-
-            routeWhileDragging: false,
-
-
-            fitSelectedRoutes: false,
-
-
-            show: true,
-
-
-            lineOptions: {
-
-                styles: [
-
-                    {
-
-                        color: "#1976d2",
-
-                        opacity: 0.9,
-
-                        weight: 6
-
-                    }
-
-                ]
-
-            }
-
-        })
-
-
-        .addTo(map);
-
-
-    // ==================================================
-    // ROUTE DITEMUKAN
-    // ==================================================
-
-    routingControl.on(
-
-        "routesfound",
-
-        function(event) {
-
-
-            const route =
-                event.routes[0];
-
-
-            const distance =
-                route.summary.totalDistance;
-
-
-            const time =
-                route.summary.totalTime;
-
-
-            console.log(
-                "Jarak:",
-                distance,
-                "meter"
-            );
-
-
-            console.log(
-                "Estimasi:",
-                time,
-                "detik"
-            );
-
-
-            // ==================================================
-            // CEK SUDAH SAMPAI
-            // ==================================================
-
-            if (
-                distance <=
-                ARRIVAL_DISTANCE
-            ) {
-
-
-                alert(
-                    "🎉 Kamu sudah sampai di " +
-                    navigationDestinationName
-                );
-
-
-                hentikanNavigasi();
-
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // INFORMASI AWAL NAVIGASI
-            // ==================================================
-
-            if (
-                lastRerouteLocation &&
-                distance > ARRIVAL_DISTANCE
-            ) {
-
-
-                console.log(
-                    "Rute aktif:",
-                    (distance / 1000).toFixed(2),
-                    "km"
-                );
-
-            }
-
+    routingControl = L.Routing.control({
+
+        waypoints: [
+            L.latLng(
+                currentUserLocation.lat,
+                currentUserLocation.lng
+            ),
+            L.latLng(
+                navigationDestination.lat,
+                navigationDestination.lng
+            )
+        ],
+
+        router: L.Routing.osrmv1({
+            serviceUrl: "https://router.project-osrm.org/route/v1"
+        }),
+
+        addWaypoints: false,
+
+        createMarker: function () {
+            return null;
+        },
+
+        routeWhileDragging: false,
+        fitSelectedRoutes: false,
+        show: true,
+
+        lineOptions: {
+            styles: [
+                {
+                    color: "#1976d2",
+                    opacity: 0.9,
+                    weight: 6
+                }
+            ]
         }
 
-    );
+    }).addTo(map);
 
+    routingControl.on("routesfound", function (event) {
 
-    // ==================================================
-    // ERROR ROUTING
-    // ==================================================
+        const route = event.routes[0];
+        const distance = route.summary.totalDistance;
+        const time = route.summary.totalTime;
 
-    routingControl.on(
+        console.log("Jarak:", distance, "meter");
+        console.log("Estimasi:", time, "detik");
 
-        "routingerror",
-
-        function() {
-
-
-            console.error(
-                "Routing error"
-            );
-
+        if (distance <= ARRIVAL_DISTANCE) {
 
             alert(
-
-                "Rute tidak dapat ditemukan.\n\n" +
-
-                "Pastikan koneksi internet aktif."
-
+                "🎉 Kamu sudah sampai di " +
+                navigationDestinationName
             );
 
+            hentikanNavigasi();
+            return;
         }
 
-    );
+        if (lastRerouteLocation && distance > ARRIVAL_DISTANCE) {
+            console.log(
+                "Rute aktif:",
+                (distance / 1000).toFixed(2),
+                "km"
+            );
+        }
+    });
 
+    routingControl.on("routingerror", function () {
+
+        console.error("Routing error");
+
+        alert(
+            "Rute tidak dapat ditemukan.\n\n" +
+            "Pastikan koneksi internet aktif."
+        );
+    });
 }
 
 
 // ======================================================
-// 19. MULAI NAVIGASI
+// 20. MULAI NAVIGASI
 // ======================================================
 
-function mulaiNavigasi(
-
-    tujuanLat,
-
-    tujuanLng,
-
-    namaTujuan
-
-) {
-
-
-    // ==================================================
-    // CEK LOKASI
-    // ==================================================
+function mulaiNavigasi(tujuanLat, tujuanLng, namaTujuan) {
 
     if (!currentUserLocation) {
 
-
         alert(
-
             "Lokasi kamu belum diketahui.\n\n" +
-
-            "Klik 📍 Lokasi Saya terlebih dahulu."
-
+            "Klik 📍 Lokasi Saya terlebih dahulu,\n" +
+            "dan tunggu sampai akurasi GPS bagus (±30 m)."
         );
 
-
         return;
-
     }
 
-
-    // ==================================================
-    // SIMPAN TUJUAN
-    // ==================================================
-
     navigationDestination = {
-
         lat: tujuanLat,
-
         lng: tujuanLng
-
     };
 
-
-    navigationDestinationName =
-        namaTujuan;
-
-
-    // ==================================================
-    // POSISI AWAL ROUTING
-    // ==================================================
+    navigationDestinationName = namaTujuan;
 
     lastRerouteLocation = {
-
-        lat:
-            currentUserLocation.lat,
-
-        lng:
-            currentUserLocation.lng
-
+        lat: currentUserLocation.lat,
+        lng: currentUserLocation.lng
     };
-
-
-    // ==================================================
-    // HITUNG RUTE
-    // ==================================================
 
     hitungUlangRute();
 
-
-    console.log(
-        "🧭 NAVIGASI DIMULAI"
-    );
-
-
-    console.log(
-        "Tujuan:",
-        namaTujuan
-    );
-
+    console.log("🧭 NAVIGASI DIMULAI");
+    console.log("Tujuan:", namaTujuan);
 }
 
 
 // ======================================================
-// 20. HENTIKAN NAVIGASI
+// 21. HENTIKAN NAVIGASI
 // ======================================================
 
 function hentikanNavigasi() {
 
-
-    // ==================================================
-    // HAPUS RUTE
-    // ==================================================
-
     if (routingControl) {
-
-
-        map.removeControl(
-            routingControl
-        );
-
-
+        map.removeControl(routingControl);
         routingControl = null;
-
     }
 
+    navigationDestination = null;
+    navigationDestinationName = null;
+    lastRerouteLocation = null;
 
-    // ==================================================
-    // HAPUS TUJUAN
-    // ==================================================
-
-    navigationDestination =
-        null;
-
-
-    navigationDestinationName =
-        null;
-
-
-    lastRerouteLocation =
-        null;
-
-
-    console.log(
-        "🛑 Navigasi dihentikan"
-    );
-
+    console.log("🛑 Navigasi dihentikan");
 }
 
 
 // ======================================================
-// 21. SELESAI
+// 22. SELESAI
 // ======================================================
