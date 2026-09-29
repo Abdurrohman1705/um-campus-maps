@@ -109,6 +109,17 @@ let lastRerouteLocation = null;
 // Menyimpan posisi GPS terbaik yang pernah diterima
 let bestUserLocation = null;
 
+// Kandidat posisi terbaik (walau akurasinya buruk)
+let fallbackLocation = null;
+
+// Timer untuk fallback
+let fallbackTimer = null;
+
+// Batas akurasi fallback (lebih longgar)
+const FALLBACK_ACCURACY = 2000;
+
+// Waktu tunggu sebelum fallback dipakai (ms)
+const FALLBACK_TIMEOUT = 10000;
 
 // ======================================================
 // 7. KONFIGURASI GPS
@@ -317,24 +328,89 @@ function updateUserLocation(position) {
     // ==================================================
     // FILTER AKURASI — TOLAK DATA BURUK
     // ==================================================
+    // ==================================================
+    // FILTER AKURASI — TOLAK DATA BURUK
+    // ==================================================
 
     if (accuracy > MAX_ACCEPTABLE_ACCURACY) {
 
         console.warn(
-            "❌ GPS DITOLAK — akurasi terlalu buruk:",
+            "⚠️ GPS DITOLAK — akurasi terlalu buruk:",
             Math.round(accuracy),
             "meter (batas:",
             MAX_ACCEPTABLE_ACCURACY,
             "meter)"
         );
 
+        // Simpan sebagai kandidat fallback
+        if (
+            !fallbackLocation ||
+            accuracy < fallbackLocation.accuracy
+        ) {
+            fallbackLocation = {
+                lat: latitude,
+                lng: longitude,
+                accuracy: accuracy
+            };
+
+            console.log(
+                "📌 Kandidat fallback disimpan:",
+                Math.round(accuracy),
+                "meter"
+            );
+        }
+
+        // Tampilkan status ke user
+        let pesanFallback =
+            "⚠️ GPS lemah (±" + Math.round(accuracy) + " m). ";
+
+        if (fallbackTimer) {
+            pesanFallback += "Menunggu sinyal lebih baik...";
+        }
+
         tampilkanStatusGPS(
-            "⚠️ GPS lemah (±" + Math.round(accuracy) + " m). Mencari sinyal...",
+            pesanFallback,
             "rgba(200, 80, 0, 0.85)"
         );
 
-        // Keluar — jangan update marker, posisi, atau rute
+        // Set timer fallback (kalau belum ada)
+        if (!fallbackTimer) {
+
+            fallbackTimer = setTimeout(function () {
+
+                console.warn(
+                    "⏰ Waktu habis — pakai kandidat fallback"
+                );
+
+                if (fallbackLocation) {
+
+                    // Paksa pakai posisi fallback
+                    gunakanPosisiFallback(
+                        fallbackLocation
+                    );
+                }
+
+                fallbackTimer = null;
+
+            }, FALLBACK_TIMEOUT);
+        }
+
+        // Keluar — jangan update marker dulu
         return;
+    }
+
+    // ==================================================
+    // GPS BAGUS — BATALKAN TIMER FALLBACK
+    // ==================================================
+updateUserLocation()
+    if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+        fallbackLocation = null;
+
+        console.log(
+            "✅ GPS bagus diterima — fallback dibatalkan"
+        );
     }
 
     console.log(
@@ -481,7 +557,101 @@ function updateUserLocation(position) {
         map.setView([latitude, longitude], 18, { animate: true });
     }
 }
+// ======================================================
+// 15b. GUNAKAN POSISI FALLBACK (AKURASI BURUK)
+// ======================================================
 
+function gunakanPosisiFallback(lokasi) {
+
+    console.warn(
+        "⚠️ Menggunakan posisi fallback dengan akurasi:",
+        Math.round(lokasi.accuracy),
+        "meter"
+    );
+
+    // Update currentUserLocation
+    currentUserLocation = {
+        lat: lokasi.lat,
+        lng: lokasi.lng,
+        accuracy: lokasi.accuracy
+    };
+
+    // Buat / update marker user
+    if (!myLocationMarker) {
+
+        myLocationMarker = L.marker([
+            lokasi.lat,
+            lokasi.lng
+        ]).addTo(map);
+
+        myLocationMarker.bindPopup(`
+            <div>
+                <h3>📍 Lokasi Saya (Perkiraan)</h3>
+
+                <p style="color:#c85000;">
+                    <strong>⚠️ Akurasi rendah</strong>
+                </p>
+
+                <p>
+                    <strong>Latitude:</strong><br>
+                    ${lokasi.lat.toFixed(6)}
+                </p>
+
+                <p>
+                    <strong>Longitude:</strong><br>
+                    ${lokasi.lng.toFixed(6)}
+                </p>
+
+                <p>
+                    <strong>Akurasi:</strong><br>
+                    ±${Math.round(lokasi.accuracy)} meter
+                </p>
+            </div>
+        `);
+    } else {
+        myLocationMarker.setLatLng([
+            lokasi.lat,
+            lokasi.lng
+        ]);
+    }
+
+    // Pindahkan peta
+    map.setView(
+        [lokasi.lat, lokasi.lng],
+        16,
+        { animate: true }
+    );
+
+    // Tampilkan status ke user
+    tampilkanStatusGPS(
+        "📍 Posisi perkiraan (±" +
+        Math.round(lokasi.accuracy) +
+        " m). Akurasi rendah.",
+        "rgba(200, 80, 0, 0.9)"
+    );
+
+    setTimeout(sembunyikanStatusGPS, 8000);
+
+    // Update tombol
+    myLocationButton.innerHTML = "📍 Lokasi Saya";
+}
+
+
+// ======================================================
+// 15c. RESET FALLBACK (DIPANGGIL SAAT MULAI TRACKING)
+// ======================================================
+
+function resetFallback() {
+
+    if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+    }
+
+    fallbackLocation = null;
+
+    console.log("🔄 Fallback di-reset");
+}
 
 // ======================================================
 // 16. ERROR GPS
@@ -548,6 +718,8 @@ function mulaiTrackingLokasi() {
         map.removeLayer(myLocationMarker);
         myLocationMarker = null;
     }
+    // Reset fallback
+    resetFallback();
 
     myLocationButton.innerHTML = "⏳ Mencari lokasi...";
 
