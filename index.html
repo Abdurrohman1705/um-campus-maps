@@ -2,43 +2,75 @@
 <html lang="id">
 
 <head>
+
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>UM Campus Maps</title>
 
-    <!-- Menghubungkan HTML dengan file CSS -->
-    <link rel="stylesheet" href="style.css">
 
-    <!-- Leaflet CSS untuk tampilan peta -->
+    <!-- ========================= -->
+    <!-- CSS WEBSITE -->
+    <!-- ========================= -->
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+
+    <!-- ========================= -->
+    <!-- LEAFLET CSS -->
+    <!-- ========================= -->
+
     <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     >
+
+
+    <!-- ========================= -->
+    <!-- LEAFLET ROUTING MACHINE CSS -->
+    <!-- ========================= -->
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
+    >
+
 </head>
+
 
 <body>
 
+
     <!-- ========================= -->
-    <!-- BAGIAN HEADER WEBSITE -->
+    <!-- HEADER -->
     <!-- ========================= -->
 
     <header class="header">
 
         <div>
-            <h1>UM Campus Maps</h1>
+
+            <h1>
+                UM Campus Maps
+            </h1>
 
             <p>
                 Peta Interaktif Universitas Negeri Malang
             </p>
+
         </div>
 
     </header>
 
 
     <!-- ========================= -->
-    <!-- BAGIAN PENCARIAN -->
+    <!-- PENCARIAN -->
     <!-- ========================= -->
 
     <section class="search-section">
@@ -57,7 +89,7 @@
 
 
     <!-- ========================= -->
-    <!-- BAGIAN KATEGORI -->
+    <!-- KATEGORI -->
     <!-- ========================= -->
 
     <section class="categories">
@@ -66,23 +98,27 @@
             Semua
         </button>
 
+
         <button onclick="filterCategory('Gedung')">
             🏢 Gedung
         </button>
+
 
         <button onclick="filterCategory('Kantin')">
             🍜 Kantin
         </button>
 
+
         <button onclick="filterCategory('Fasilitas')">
             🚻 Fasilitas
         </button>
+
 
         <button onclick="filterCategory('Parkir')">
             🅿️ Parkir
         </button>
 
-        <!-- Tombol lokasi pengguna -->
+
         <button id="myLocationButton">
             📍 Lokasi Saya
         </button>
@@ -91,7 +127,7 @@
 
 
     <!-- ========================= -->
-    <!-- BAGIAN PETA -->
+    <!-- PETA -->
     <!-- ========================= -->
 
     <main>
@@ -111,18 +147,20 @@
 
 
     <!-- ========================= -->
-    <!-- JAVASCRIPT WEBSITE KITA -->
+    <!-- LEAFLET ROUTING MACHINE -->
     <!-- ========================= -->
-<link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css"
-/>
 
-<script
-    src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js">
-</script>
+    <script
+        src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js">
+    </script>
+
+
+    <!-- ========================= -->
+    <!-- JAVASCRIPT PROJECT -->
+    <!-- ========================= -->
 
     <script src="script.js"></script>
+
 
 </body>
 

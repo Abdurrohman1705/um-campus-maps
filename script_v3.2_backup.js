@@ -1,8 +1,8 @@
 // ======================================================
 // UM CAMPUS MAPS
-// FINAL V4.0
+// V3.3
 // Lokasi Saya + Navigasi Real-Time
-// GPS Tracking + Re-routing
+// Tracking GPS + Re-routing
 // ======================================================
 
 
@@ -129,44 +129,40 @@ let markers = [];
 
 let routingControl = null;
 
+
+// Lokasi pengguna saat ini
 let currentUserLocation = null;
 
+
+// Marker pengguna
 let myLocationMarker = null;
 
+
+// ID tracking GPS
 let watchId = null;
 
+
+// Tujuan navigasi
 let navigationDestination = null;
 
+
+// Nama tujuan
 let navigationDestinationName = null;
 
+
+// Posisi terakhir ketika routing dihitung
 let lastRerouteLocation = null;
 
 
-// ======================================================
-// 7. KONFIGURASI GPS
-// ======================================================
-
-// Jarak minimum untuk menghitung ulang rute
-
+// Jarak minimum sebelum route dihitung ulang
 const REROUTE_DISTANCE = 30;
 
 
-// Akurasi GPS yang dianggap cukup baik
-
-const MAX_ACCEPTABLE_ACCURACY = 100;
-
-
-// Jarak tujuan dianggap sudah sampai
-
-const ARRIVAL_DISTANCE = 20;
-
-
 // ======================================================
-// 8. MENAMPILKAN MARKER LOKASI
+// 7. MENAMPILKAN MARKER
 // ======================================================
 
 function tampilkanLokasi(data) {
-
 
     // Hapus marker lama
 
@@ -180,10 +176,9 @@ function tampilkanLokasi(data) {
     markers = [];
 
 
-    // Buat marker baru
+    // Membuat marker baru
 
     data.forEach(function(lokasi) {
-
 
         const marker = L.marker([
 
@@ -285,18 +280,17 @@ function tampilkanLokasi(data) {
 
 
 // ======================================================
-// 9. TAMPILKAN SEMUA LOKASI
+// 8. TAMPILKAN SEMUA LOKASI
 // ======================================================
 
 tampilkanLokasi(locations);
 
 
 // ======================================================
-// 10. FILTER KATEGORI
+// 9. FILTER KATEGORI
 // ======================================================
 
 function filterCategory(kategori) {
-
 
     if (kategori === "Semua") {
 
@@ -334,7 +328,7 @@ function filterCategory(kategori) {
 
 
 // ======================================================
-// 11. SEARCH
+// 10. SEARCH
 // ======================================================
 
 const searchButton =
@@ -350,7 +344,6 @@ searchButton.addEventListener(
     "click",
 
     function() {
-
 
         const keyword =
 
@@ -418,7 +411,7 @@ searchButton.addEventListener(
 
 
 // ======================================================
-// 12. ENTER UNTUK SEARCH
+// 11. ENTER UNTUK SEARCH
 // ======================================================
 
 searchInput.addEventListener(
@@ -439,7 +432,7 @@ searchInput.addEventListener(
 
 
 // ======================================================
-// 13. TOMBOL LOKASI SAYA
+// 12. TOMBOL LOKASI SAYA
 // ======================================================
 
 const myLocationButton =
@@ -450,11 +443,10 @@ const myLocationButton =
 
 
 // ======================================================
-// 14. UPDATE LOKASI PENGGUNA
+// 13. UPDATE MARKER PENGGUNA
 // ======================================================
 
 function updateUserLocation(position) {
-
 
     const latitude =
         position.coords.latitude;
@@ -464,75 +456,22 @@ function updateUserLocation(position) {
         position.coords.longitude;
 
 
-    const accuracy =
-        position.coords.accuracy;
-
-
-    const timestamp =
-        new Date(
-            position.timestamp
-        );
-
-
-    // ==================================================
-    // DEBUG GPS
-    // ==================================================
-
-    console.log(
-        "================================="
-    );
-
-    console.log(
-        "GPS UPDATE"
-    );
-
-    console.log(
-        "Latitude:",
-        latitude
-    );
-
-    console.log(
-        "Longitude:",
-        longitude
-    );
-
-    console.log(
-        "Akurasi:",
-        accuracy,
-        "meter"
-    );
-
-    console.log(
-        "Waktu:",
-        timestamp.toLocaleTimeString()
-    );
-
-    console.log(
-        "================================="
-    );
-
-
-    // ==================================================
-    // SIMPAN LOKASI
-    // ==================================================
+    // Simpan lokasi terbaru
 
     currentUserLocation = {
 
         lat: latitude,
 
-        lng: longitude,
-
-        accuracy: accuracy
+        lng: longitude
 
     };
 
 
     // ==================================================
-    // BUAT MARKER PENGGUNA
+    // BUAT MARKER JIKA BELUM ADA
     // ==================================================
 
     if (!myLocationMarker) {
-
 
         myLocationMarker =
 
@@ -582,21 +521,6 @@ function updateUserLocation(position) {
 
                 </p>
 
-
-                <p>
-
-                    <strong>
-                        Akurasi:
-                    </strong>
-
-                    <br>
-
-                    <span id="userAccuracy">
-                        ±${Math.round(accuracy)} meter
-                    </span>
-
-                </p>
-
             </div>
 
         `);
@@ -608,35 +532,29 @@ function updateUserLocation(position) {
     // PINDAHKAN MARKER
     // ==================================================
 
-    myLocationMarker.setLatLng([
+    else {
 
-        latitude,
+        myLocationMarker.setLatLng([
 
-        longitude
+            latitude,
 
-    ]);
+            longitude
+
+        ]);
+
+    }
 
 
     // ==================================================
-    // UPDATE DATA POPUP
+    // UPDATE INFORMASI POPUP
     // ==================================================
 
     const latElement =
-        document.getElementById(
-            "userLatitude"
-        );
+        document.getElementById("userLatitude");
 
 
     const lngElement =
-        document.getElementById(
-            "userLongitude"
-        );
-
-
-    const accuracyElement =
-        document.getElementById(
-            "userAccuracy"
-        );
+        document.getElementById("userLongitude");
 
 
     if (latElement) {
@@ -655,34 +573,6 @@ function updateUserLocation(position) {
     }
 
 
-    if (accuracyElement) {
-
-        accuracyElement.innerText =
-            "±" +
-            Math.round(accuracy) +
-            " meter";
-
-    }
-
-
-    // ==================================================
-    // JIKA AKURASI BURUK
-    // ==================================================
-
-    if (
-        accuracy >
-        MAX_ACCEPTABLE_ACCURACY
-    ) {
-
-        console.warn(
-            "Akurasi GPS kurang baik:",
-            accuracy,
-            "meter"
-        );
-
-    }
-
-
     // ==================================================
     // JIKA SEDANG NAVIGASI
     // ==================================================
@@ -694,7 +584,6 @@ function updateUserLocation(position) {
         lastRerouteLocation
 
     ) {
-
 
         const distanceMoved =
 
@@ -713,29 +602,17 @@ function updateUserLocation(position) {
             );
 
 
-        console.log(
-            "Pergerakan sejak routing terakhir:",
-            Math.round(distanceMoved),
-            "meter"
-        );
-
-
         // ==================================================
-        // HITUNG ULANG RUTE
+        // HITUNG ULANG RUTE JIKA BERGERAK CUKUP JAUH
         // ==================================================
 
         if (
 
             distanceMoved >=
+
             REROUTE_DISTANCE
 
         ) {
-
-
-            console.log(
-                "♻️ Menghitung ulang rute..."
-            );
-
 
             lastRerouteLocation = {
 
@@ -752,46 +629,14 @@ function updateUserLocation(position) {
 
     }
 
-
-    // ==================================================
-    // IKUTI LOKASI PENGGUNA SAAT NAVIGASI
-    // ==================================================
-
-    if (navigationDestination) {
-
-
-        map.setView(
-
-            [
-                latitude,
-                longitude
-            ],
-
-            18,
-
-            {
-                animate: true
-            }
-
-        );
-
-    }
-
 }
 
 
 // ======================================================
-// 15. ERROR GPS
+// 14. ERROR GPS
 // ======================================================
 
 function handleLocationError(error) {
-
-
-    console.error(
-        "GPS ERROR:",
-        error
-    );
-
 
     myLocationButton.innerHTML =
         "📍 Lokasi Saya";
@@ -799,12 +644,11 @@ function handleLocationError(error) {
 
     switch (error.code) {
 
-
         case error.PERMISSION_DENIED:
 
             alert(
-                "Akses lokasi ditolak.\n\n" +
-                "Silakan izinkan lokasi pada browser."
+                "Akses lokasi ditolak. " +
+                "Izinkan akses lokasi pada browser."
             );
 
             break;
@@ -813,8 +657,7 @@ function handleLocationError(error) {
         case error.POSITION_UNAVAILABLE:
 
             alert(
-                "Lokasi tidak tersedia.\n\n" +
-                "Periksa GPS, Wi-Fi, atau lokasi perangkat."
+                "Lokasi tidak tersedia."
             );
 
             break;
@@ -823,8 +666,7 @@ function handleLocationError(error) {
         case error.TIMEOUT:
 
             alert(
-                "Waktu pencarian lokasi habis.\n\n" +
-                "Coba tekan tombol Lokasi Saya lagi."
+                "Waktu pencarian lokasi habis."
             );
 
             break;
@@ -842,16 +684,15 @@ function handleLocationError(error) {
 
 
 // ======================================================
-// 16. MULAI TRACKING GPS
+// 15. MULAI TRACKING GPS
 // ======================================================
 
 function mulaiTrackingLokasi() {
 
-
     if (!navigator.geolocation) {
 
         alert(
-            "Browser tidak mendukung fitur lokasi."
+            "Browser kamu tidak mendukung fitur lokasi."
         );
 
         return;
@@ -859,9 +700,7 @@ function mulaiTrackingLokasi() {
     }
 
 
-    // ==================================================
-    // HAPUS TRACKING LAMA
-    // ==================================================
+    // Jangan membuat tracking ganda
 
     if (watchId !== null) {
 
@@ -869,89 +708,18 @@ function mulaiTrackingLokasi() {
             watchId
         );
 
-        watchId = null;
-
     }
 
 
     myLocationButton.innerHTML =
-        "⏳ Mencari lokasi...";
+        "⏳ Melacak lokasi...";
 
-
-    // ==================================================
-    // AMBIL POSISI AWAL
-    // ==================================================
-
-    navigator.geolocation.getCurrentPosition(
-
-        function(position) {
-
-
-            console.log(
-                "POSISI AWAL GPS:"
-            );
-
-            console.log(
-                position
-            );
-
-
-            updateUserLocation(
-                position
-            );
-
-
-            map.setView(
-
-                [
-                    position.coords.latitude,
-                    position.coords.longitude
-                ],
-
-                18
-
-            );
-
-
-            myLocationButton.innerHTML =
-                "📍 Lokasi Saya";
-
-
-        },
-
-
-        function(error) {
-
-            handleLocationError(
-                error
-            );
-
-        },
-
-
-        {
-
-            enableHighAccuracy: true,
-
-            timeout: 20000,
-
-            maximumAge: 0
-
-        }
-
-    );
-
-
-    // ==================================================
-    // TRACKING BERKELANJUTAN
-    // ==================================================
 
     watchId =
 
         navigator.geolocation.watchPosition(
 
             function(position) {
-
 
                 updateUserLocation(
                     position
@@ -977,7 +745,7 @@ function mulaiTrackingLokasi() {
 
                 enableHighAccuracy: true,
 
-                timeout: 20000,
+                timeout: 10000,
 
                 maximumAge: 0
 
@@ -989,7 +757,7 @@ function mulaiTrackingLokasi() {
 
 
 // ======================================================
-// 17. TOMBOL LOKASI SAYA
+// 16. TOMBOL LOKASI SAYA
 // ======================================================
 
 myLocationButton.addEventListener(
@@ -1000,17 +768,38 @@ myLocationButton.addEventListener(
 
         mulaiTrackingLokasi();
 
+
+        // Jika posisi sudah tersedia
+        // fokuskan peta ke posisi tersebut
+
+        if (currentUserLocation) {
+
+            map.setView(
+
+                [
+
+                    currentUserLocation.lat,
+
+                    currentUserLocation.lng
+
+                ],
+
+                18
+
+            );
+
+        }
+
     }
 
 );
 
 
 // ======================================================
-// 18. HITUNG ULANG RUTE
+// 17. HITUNG ULANG RUTE
 // ======================================================
 
 function hitungUlangRute() {
-
 
     if (
 
@@ -1025,44 +814,23 @@ function hitungUlangRute() {
     }
 
 
-    // ==================================================
-    // HAPUS RUTE LAMA
-    // ==================================================
+    // Hapus route lama
 
     if (routingControl) {
 
-
         map.removeControl(
-            routingControl
-        );
 
+            routingControl
+
+        );
 
         routingControl = null;
 
     }
 
 
-    console.log(
-        "🧭 ROUTING:"
-    );
-
-
-    console.log(
-        "Dari:",
-        currentUserLocation.lat,
-        currentUserLocation.lng
-    );
-
-
-    console.log(
-        "Ke:",
-        navigationDestination.lat,
-        navigationDestination.lng
-    );
-
-
     // ==================================================
-    // BUAT RUTE BARU
+    // ROUTING BARU
     // ==================================================
 
     routingControl =
@@ -1118,7 +886,7 @@ function hitungUlangRute() {
             fitSelectedRoutes: false,
 
 
-            show: true,
+            language: "en",
 
 
             lineOptions: {
@@ -1137,16 +905,18 @@ function hitungUlangRute() {
 
                 ]
 
-            }
+            },
+
+
+            show: true
 
         })
-
 
         .addTo(map);
 
 
     // ==================================================
-    // ROUTE DITEMUKAN
+    // ROUTE BERHASIL
     // ==================================================
 
     routingControl.on(
@@ -1154,7 +924,6 @@ function hitungUlangRute() {
         "routesfound",
 
         function(event) {
-
 
             const route =
                 event.routes[0];
@@ -1168,58 +937,71 @@ function hitungUlangRute() {
                 route.summary.totalTime;
 
 
-            console.log(
-                "Jarak:",
-                distance,
-                "meter"
-            );
+            let jarakText;
 
 
-            console.log(
-                "Estimasi:",
-                time,
-                "detik"
-            );
+            if (distance < 1000) {
 
+                jarakText =
 
-            // ==================================================
-            // CEK SUDAH SAMPAI
-            // ==================================================
+                    Math.round(distance) +
 
-            if (
-                distance <=
-                ARRIVAL_DISTANCE
-            ) {
+                    " meter";
 
+            }
 
-                alert(
-                    "🎉 Kamu sudah sampai di " +
-                    navigationDestinationName
-                );
+            else {
 
+                jarakText =
 
-                hentikanNavigasi();
+                    (
 
+                        distance / 1000
 
-                return;
+                    ).toFixed(2) +
+
+                    " km";
 
             }
 
 
+            const menit =
+
+                Math.round(
+
+                    time / 60
+
+                );
+
+
             // ==================================================
-            // INFORMASI AWAL NAVIGASI
+            // HANYA TAMPILKAN INFORMASI PADA AWAL NAVIGASI
             // ==================================================
 
-            if (
-                lastRerouteLocation &&
-                distance > ARRIVAL_DISTANCE
-            ) {
+            if (!lastRerouteLocation) {
 
+                alert(
 
-                console.log(
-                    "Rute aktif:",
-                    (distance / 1000).toFixed(2),
-                    "km"
+                    "Navigasi dimulai!\n\n" +
+
+                    "Tujuan: " +
+
+                    navigationDestinationName +
+
+                    "\n" +
+
+                    "Jarak: " +
+
+                    jarakText +
+
+                    "\n" +
+
+                    "Estimasi: ±" +
+
+                    menit +
+
+                    " menit"
+
                 );
 
             }
@@ -1239,12 +1021,6 @@ function hitungUlangRute() {
 
         function() {
 
-
-            console.error(
-                "Routing error"
-            );
-
-
             alert(
 
                 "Rute tidak dapat ditemukan.\n\n" +
@@ -1261,7 +1037,7 @@ function hitungUlangRute() {
 
 
 // ======================================================
-// 19. MULAI NAVIGASI
+// 18. MULAI NAVIGASI
 // ======================================================
 
 function mulaiNavigasi(
@@ -1274,13 +1050,11 @@ function mulaiNavigasi(
 
 ) {
 
-
     // ==================================================
-    // CEK LOKASI
+    // CEK LOKASI PENGGUNA
     // ==================================================
 
     if (!currentUserLocation) {
-
 
         alert(
 
@@ -1314,16 +1088,14 @@ function mulaiNavigasi(
 
 
     // ==================================================
-    // POSISI AWAL ROUTING
+    // SIMPAN POSISI AWAL
     // ==================================================
 
     lastRerouteLocation = {
 
-        lat:
-            currentUserLocation.lat,
+        lat: currentUserLocation.lat,
 
-        lng:
-            currentUserLocation.lng
+        lng: currentUserLocation.lng
 
     };
 
@@ -1334,67 +1106,9 @@ function mulaiNavigasi(
 
     hitungUlangRute();
 
-
-    console.log(
-        "🧭 NAVIGASI DIMULAI"
-    );
-
-
-    console.log(
-        "Tujuan:",
-        namaTujuan
-    );
-
 }
 
 
 // ======================================================
-// 20. HENTIKAN NAVIGASI
-// ======================================================
-
-function hentikanNavigasi() {
-
-
-    // ==================================================
-    // HAPUS RUTE
-    // ==================================================
-
-    if (routingControl) {
-
-
-        map.removeControl(
-            routingControl
-        );
-
-
-        routingControl = null;
-
-    }
-
-
-    // ==================================================
-    // HAPUS TUJUAN
-    // ==================================================
-
-    navigationDestination =
-        null;
-
-
-    navigationDestinationName =
-        null;
-
-
-    lastRerouteLocation =
-        null;
-
-
-    console.log(
-        "🛑 Navigasi dihentikan"
-    );
-
-}
-
-
-// ======================================================
-// 21. SELESAI
+// 19. SELESAI V3.3
 // ======================================================
